@@ -1,0 +1,77 @@
+解开redis的包，将解包的目录复制且改名到/usr/local/redis，进入/usr/local/redis，执行make和make install
+
+在/usr/local/redis/src目录下执行 ./redis-server /usr/local/redis/redis.conf & 开启服务，./redis-cli登录数据库
+
+redis加固配置
+1.禁止通过网络访问数据库：修改配置文件bind 127.0.0.1 ::1
+2.如果有网络访问数据库的需求，请使用iptables设置访问源限制：iptables -A INPUT -s 192.168.3.1/24 -p tcp --dport 6379 -j ACCEPT
+3.设置高风险命令别名：修改配置文件rename-command
+4.设置执行命令认证：修改配置文件requirepass，重启服务，再次使用数据库命令时需要auth xxxx后才可以执行
+5.创建普通用户rds，使用普通用户开启数据库。
+6.手动备份数据库：在数据库中使用bgsave备份数据库为dump.rdb
+
+
+
+mongodb安装+加固
+1.解包+复制到程序目录
+tar zxf mongodb-linux-x86_64-rhel70-4.2.3.tgz -C /usr/src/
+cp -r /usr/src/mongodb-linux-x86_64-rhel70-4.2.3/ /usr/local/mongodb
+2.手动创建关键目录，手动创建配置文件。
+cd /usr/local/mongodb/
+mkdir -p data/db log etc
+vim /usr/local/mongodb/etc/mongodb.conf
+编辑内容
+dbpath=/usr/local/mongodb/data/db
+logpath=/usr/local/mongodb/log/mongodb.log
+fork=true
+journal=false
+port=28888
+bind_ip=xxx
+3.启动服务
+/usr/local/mongodb/bin/mongod --config /usr/local/mongodb/etc/mongodb.conf
+错误1：日志建立失败。错误100：数据库建立失败。错误48：有重复进程
+netstat -anpt | grep mongod
+4.关闭服务
+./mongo admin --port 28888 --eval "db.shutdownServer()"
+或者登录数据后执行
+use admin
+db.shutdownServer();
+5.登录数据库
+./mongo --port 28888
+6.开启认证功能，实现命令操作需要用户名和密码才可以执行。
+未开启认证功能前，测试创建用户
+db.createUser({user:"test1",pwd:"123.com",roles:[{role:"userAdminAnyDatabase",db:"admin"}]});
+成功
+开启认证功能：修改配置文件加入auth=true
+重启服务后登录数据库，测试创建用户失败
+数据库用户角色：read，readWrite
+数据库管理角色：dbAdmin，dbOwner，userAdmin
+集群管理角色：clusterAdmin，clusterManager，clusterMonitor，hostManager
+备份恢复角色：backup，restore
+所有数据库角色：readAnyDatabase，readWriteAnyDatabase，userAdminAnyDatabase，dbAdminAnyDatabase
+超级用户角色：root
+
+use admin
+db.createUser({user:"test2",pwd:"123.com",roles:[{role:"userAdminAnyDatabase",db:"admin"}]});
+认证后再次创建用户
+use admin
+db.auth ("test1","123.com")
+db.createUser({user:"test2",pwd:"123.com",roles:[{role:"userAdminAnyDatabase",db:"admin"}]});
+7.建立管理员帐户，备份账户，还原账户
+use admin
+db.auth("test1","123.com")
+db.createUser({user:"root",pwd:"123.com",roles:[{role:"root",db:"admin"}]});
+db.createUser({user:"bkuser",pwd:"123.com",roles:[{role:"backup",db:"admin"}]});
+db.createUser({user:"reuser",pwd:"123.com",roles:[{role:"restore",db:"admin"}]});
+8.备份数据库和还原数据库
+回到shell环境
+将本机的admin数据库使用bkuser账户备份到/tmp目录
+./mongodump --host 127.0.0.1 --port 28888 -d admin -o /tmp/ -u bkuser -p 123.com --authenticationDatabase admin
+
+将/tmp目录中admin的备份信息使用reuser账户还原到myadmin库
+./mongorestore --host  127.0.0.1 --port 28888 -u reuser -p 123.com -d myadmin /tmp/admin --authenticationDatabase admin
+
+现在有个数据库叫chaitin，如果希望备份这个数据库
+db.createUser({user:"ctback",pwd:"123.com",roles:[{role:"backup",db:"chaitin"}]});
+db.createUser({user:"ctroot",pwd:"123.com",roles:[{role:"dbOwner",db:"chaitin"}]});
+这个ctroot账户在chaitin数据库中拥有最高的权限

@@ -1,0 +1,160 @@
+——避免被针对版本直接使用漏洞
+修改nginx.conf文件
+在http模块中添加如下信息
+server_tokens  off；
+
+
+
+
+——某些目录为运维页面，不要公开访问
+编辑nginx.conf
+在server标签内添加如下内容
+location ~ /attachments/.*\.(php|php5)?$ { 
+deny all; 
+}
+location ~ /(attachments|upload)/.*\.(php|php5)?$ { 
+deny all; 
+}
+
+
+
+——敏感目录使用白名单访问
+修改nginx.conf文件
+在server中添加
+location /upload {
+allow 192.168.1.0/24; 
+allow 10.1.1.1/32; 
+deny all; 
+}
+
+
+
+
+——防止通过浏览器直接查看目录内容
+编辑nginx.conf文件
+在http模块下添加一行内容
+autoindex off;
+
+
+——制作重定向，防止默认页面存在安全隐患
+编辑nginx.conf
+在server模块下加入
+error_page   404  /404.html;
+        location = /404.html {
+        root   /usr/local/nginx/html;
+        }
+
+
+
+——修改日记格式，便于审计
+编辑nginx.conf文件
+在http模块内启用标签main的log_format格式
+log_format main '$remote_addr - $remote_user [$time_local] "$request" ' '$status $body_bytes_sent "$http_referer" ' '"$http_user_agent" "$http_x_forwarded_for”’;
+在server标签内调用
+access_log logs/host.access.log main
+
+
+
+
+——只允许常用的get和post方法，减少漏洞
+编辑nginx.conf
+在server模块中加入判断信息
+if ($request_method !~* GET|POST) { return 403;
+}
+
+
+
+——减缓被ddos攻击时资源消耗速度
+编辑nginx.conf文件
+在http模块中声明
+limit_req_zone $binary_remote_addr zone=allips:10m rate=20r/s;
+添加在server的location中
+location / { 
+limit_req zone=allips burst=5 nodelay;
+limit_rate 20k; 
+}
+定义一个名为allips的limit_req_zone用来存储session，大小是10M内存，
+以$binary_remote_addr 为key,限制平均每秒的请求为20个，
+1M能存储16000个状态，rete的值必须为整数，
+如果限制两秒钟一个请求，可以设置成30r/m limit_req_zone $binary_remote_addr zone=allips:10m rate=20r/s;
+限制每ip每秒不超过20个请求，漏桶数burst为5 
+brust的意思就是，如果第1秒、2,3,4秒请求为19个，
+第5秒的请求为25个是被允许的。 
+但是如果你第1秒就25个请求，第2秒超过20的请求返回503错误。
+nodelay，如果不设置该选项，严格使用平均速率限制请求数，
+第1秒25个请求时，5个请求放到第2秒执行，
+设置nodelay，25个请求将在第1秒执行。
+limit_req zone=allips burst=5 nodelay; ... } ... } ... }
+例如：如果想设置用户下载文件的前10m大小时不限速，大于10m后再以128kb/s限速可以增加以下配内容，修改nginx.conf文件 
+location /download { 
+limit_rate_after 10m;
+limit_rate 128k; }
+
+
+
+——缓解ddos造成的影响
+编辑nginx.conf文件
+在http模块中设置
+client_body_timeout 10; 
+client_header_timeout 10; 
+keepalive_timeout 5 5; 
+send_timeout 10; 
+
+
+——防止通过其他途径使用本网站资源
+location ~* \.(jpg|jpeg|png|gif|bmp|swf|rar|zip|doc|xls|pdf|gz|bz2|mp3|mp4|flv)$ {
+valid_referers none blocked 192.168.0.1 *.baidu.com;
+ if ($invalid_referer) { 
+rewrite ^/ https://site.com/403.jpg;
+  return 403;
+ }
+ root /usr/share/nginx/img; 
+}
+
+
+——防止高权限运行nginx进程
+编辑nginx.conf
+在http模块下修改
+user	nobody;
+
+
+
+
+——防止非法后缀被服务器识别
+1） 将php.ini文件中的cgi.fix_pathinfo的值设为0
+2） 将/etc/php5/fpm/pool.d/www.conf中security.limit_ectensions后面的值设为.php
+security.limit_extensions = .php .php3 .php4 .php5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

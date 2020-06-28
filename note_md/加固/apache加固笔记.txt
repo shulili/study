@@ -1,0 +1,190 @@
+修改httpd.conf
+vi  /etc/httpd/conf/httpd.conf或者编译路径下/conf/httpd.conf
+检查程序启动账号和用户组
+user  apache或者nobody
+group  apache或者nobody
+一般情况下默认用户符合安全要求
+
+
+
+
+在httpd.conf文件中查找主目录位置
+grep  “ServerRoot” /etc/httpd/conf/httpd.conf
+修改权限
+chmod修改权限主目录权限
+chmod -R 700 /etc/httpd/
+chmod 644 /var/log/httpd/*.log
+
+
+
+
+修改httpd.conf文件
+vi  /etc/httpd/conf/httpd.conf
+更改错误日志
+LogLevel	notice（更多的记录信息，但会占用大量空间）
+ErrorLog   /logs/error_log（可根据磁盘规划更改）
+更改访问日志
+LogFormat “%h %l %u %t \”%r\“ %>s %b \”%{Accept}i\“%{Referer}i\” \“%{User-Agent}i\”“ combined
+CustomLog   /logs/access_log combined (可根据磁盘规划更改)
+
+
+
+打开httpd.conf检查关键语法
+<Directory />
+    AllowOverride none
+    Require all denied
+</Directory>
+<Directory "/var/www/html">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+
+
+修改httpd.conf文件
+vi  /etc/httpd/conf/httpd.conf
+去掉站点配置信息中的Indexes选项
+<Directory "/var/www/html">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+Indexes:无法在当前目录下找到首页文件，就显示目录内容
+
+
+
+修改httpd.conf文件
+vi  /etc/httpd/conf/httpd.conf
+编辑错误页面配置
+ErrorDocument 400  /error/400.html
+ErrorDocument 401  /error/401.html
+ErrorDocument 403  /error/403.html
+ErrorDocument 404  /error/404.html
+ErrorDocument 405  /error/405.html
+ErrorDocument 500  /error/500.html
+错误页面在站点根目录下创建，也可以在子目录中
+错误信息还可以使用“直接输出提示”
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+修改内容
+Timeout 10 
+KeepAlive On
+KeepAliveTimeout 15
+此处的连接间隔和session保持时间单位都是秒，一定要根据实际情况，分析后再设定
+
+
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+ 修改信息如下
+ServerSignature Off 
+ServerTokens Prod
+
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+ 修改信息如下
+TraceEnable Off
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+ 注释信息如下
+ScriptAlias /cgi-bin/ "/var/www/cgi-bin/”
+<Directory "/var/www/cgi-bin">
+    AllowOverride None
+    Options None
+    Require all granted
+</Directory>
+LoadModule cgi_module modules/mod_cgi.so
+
+
+
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+添加监听IP
+Listen  xx.xx.xx.xx:80
+如果页面为私有页面，还可以更改默认端口值
+
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+ 加入信息如下
+<Location />
+<LimitExcept GET POST CONNECT OPTIONS>
+ AllowOverride None
+Require all granted
+</LimitExcept>
+</Location>
+
+
+
+编辑httpd.conf
+vi  /etc/httpd/conf/httpd.conf
+ 添加配置信息
+<FilesMatch \.php$> 
+SetHandler application/x-httpd-php
+</FilesMatch>
+<FilesMatch "\.phps$"> 
+SetHandler application/x-httpd-php-source
+</FilesMatch> 
+
+
+
+
+修改php.ini文件
+vi  /etc/php.ini
+加入或修改信息如下
+magic_quotes_gpc=On
+
+
+
+防止溢出漏洞
+编辑httpd.conf文件
+vi /etc/httpd/conf/httpd.conf
+添加信息
+LimitRequestBody 102400
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
